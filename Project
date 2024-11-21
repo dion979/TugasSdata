@@ -1,0 +1,179 @@
+#include <iostream>
+#include <queue>
+#include <stack>
+#include <string>
+#include <unordered_map>
+#include <vector>
+using namespace std;
+
+struct Barang {
+    string id;
+    string nama;
+    int jumlah;
+    bool prioritas; // Menandakan apakah barang termasuk prioritas
+};
+
+// Struktur untuk mencatat kerusakan atau kehilangan barang
+struct RiwayatKerusakan {
+    string idBarang;
+    string deskripsi;
+};
+
+unordered_map<string, Barang> inventaris;
+queue<Barang> fifoQueue;   // Untuk transaksi keluar-masuk barang (FIFO)
+stack<Barang> lifoStack;   // Untuk daftar prioritas pengiriman (LIFO)
+vector<RiwayatKerusakan> riwayatKerusakan;
+
+// Fungsi untuk menambahkan barang ke inventaris
+void tambahBarang(const string& id, const string& nama, int jumlah, bool prioritas) {
+    Barang barang = {id, nama, jumlah, prioritas};
+    inventaris[id] = barang;
+    fifoQueue.push(barang); // Menambahkan ke FIFO queue
+    if (prioritas) {
+        lifoStack.push(barang); // Menambahkan ke LIFO stack hanya jika prioritas
+    }
+    cout << "Barang " << nama << " berhasil ditambahkan.\n";
+}
+
+// Fungsi untuk mencatat barang rusak atau hilang
+void catatKerusakan(const string& id, const string& deskripsi) {
+    auto it = inventaris.find(id);
+    if (it != inventaris.end()) {
+        // Mencatat ke riwayat kerusakan
+        RiwayatKerusakan kerusakan = {id, deskripsi};
+        riwayatKerusakan.push_back(kerusakan);
+
+        // Menghapus barang dari inventaris
+        inventaris.erase(it);
+        cout << "Kerusakan pada barang dengan ID " << id << " berhasil dicatat dan dihapus dari inventaris.\n";
+    } else {
+        cout << "Barang dengan ID " << id << " tidak ditemukan di inventaris.\n";
+    }
+}
+
+// Fungsi untuk memproses barang keluar (FIFO)
+void prosesKeluarBarang() {
+    if (!fifoQueue.empty()) {
+        Barang barang = fifoQueue.front();
+        fifoQueue.pop();
+
+        // Menghapus dari inventaris
+        if (inventaris.erase(barang.id)) {
+            cout << "Barang keluar: " << barang.nama << " (ID: " << barang.id << ").\n";
+        } else {
+            cout << "Barang dengan ID " << barang.id << " tidak ditemukan di inventaris.\n";
+        }
+    } else {
+        cout << "Tidak ada barang untuk diproses keluar.\n";
+    }
+}
+
+// Fungsi untuk memproses pengiriman prioritas (LIFO)
+void prosesPrioritas() {
+    if (!lifoStack.empty()) {
+        Barang barang = lifoStack.top();
+        lifoStack.pop();
+
+        // Menghapus dari inventaris
+        if (inventaris.erase(barang.id)) {
+            cout << "Pengiriman prioritas: " << barang.nama << " (ID: " << barang.id << ").\n";
+        } else {
+            cout << "Barang dengan ID " << barang.id << " tidak ditemukan di inventaris.\n";
+        }
+    } else {
+        cout << "Tidak ada barang prioritas untuk diproses.\n";
+    }
+}
+
+// Fungsi untuk menampilkan semua barang di inventaris
+void tampilkanInventaris() {
+    cout << "\nDaftar Barang di Inventaris:\n";
+    if (inventaris.empty()) {
+        cout << "Tidak ada barang di inventaris.\n";
+    } else {
+        for (const auto& pair : inventaris) {
+            cout << "ID: " << pair.second.id << ", Nama: " << pair.second.nama
+                 << ", Jumlah: " << pair.second.jumlah
+                 << ", Prioritas: " << (pair.second.prioritas ? "Ya" : "Tidak") << "\n";
+        }
+    }
+}
+
+// Fungsi untuk menampilkan riwayat kerusakan atau kehilangan barang
+void tampilkanRiwayatKerusakan() {
+    cout << "\nRiwayat Kerusakan atau Kehilangan:\n";
+    if (riwayatKerusakan.empty()) {
+        cout << "Tidak ada riwayat kerusakan atau kehilangan.\n";
+    } else {
+        for (const auto& kerusakan : riwayatKerusakan) {
+            cout << "ID Barang: " << kerusakan.idBarang
+                 << ", Deskripsi: " << kerusakan.deskripsi << "\n";
+        }
+    }
+}
+
+int main() {
+    int pilihan;
+    do {
+        cout << "\n=== Menu Manajemen Inventaris ===\n";
+        cout << "1. Tambah Barang\n";
+        cout << "2. Catat Kerusakan/Hilang Barang\n";
+        cout << "3. Proses Barang Keluar (FIFO)\n";
+        cout << "4. Proses Pengiriman Prioritas (LIFO)\n";
+        cout << "5. Tampilkan Inventaris\n";
+        cout << "6. Tampilkan Riwayat Kerusakan\n";
+        cout << "0. Keluar\n";
+        cout << "Pilihan Anda: ";
+        cin >> pilihan;
+
+        switch (pilihan) {
+            case 1: {
+                string id, nama;
+                int jumlah;
+                char prioritasInput;
+                bool prioritas;
+                cout << "Masukkan ID Barang: ";
+                cin >> id;
+                cout << "Masukkan Nama Barang: ";
+                cin.ignore();
+                getline(cin, nama);
+                cout << "Masukkan Jumlah: ";
+                cin >> jumlah;
+                cout << "Apakah barang ini prioritas? (y/n): ";
+                cin >> prioritasInput;
+                prioritas = (prioritasInput == 'y' || prioritasInput == 'Y');
+                tambahBarang(id, nama, jumlah, prioritas);
+                break;
+            }
+            case 2: {
+                string id, deskripsi;
+                cout << "Masukkan ID Barang: ";
+                cin >> id;
+                cout << "Masukkan Deskripsi Kerusakan: ";
+                cin.ignore();
+                getline(cin, deskripsi);
+                catatKerusakan(id, deskripsi);
+                break;
+            }
+            case 3:
+                prosesKeluarBarang();
+                break;
+            case 4:
+                prosesPrioritas();
+                break;
+            case 5:
+                tampilkanInventaris();
+                break;
+            case 6:
+                tampilkanRiwayatKerusakan();
+                break;
+            case 0:
+                cout << "Keluar dari program.\n";
+                break;
+            default:
+                cout << "Pilihan tidak valid.\n";
+        }
+    } while (pilihan != 0);
+
+    return 0;
+}
